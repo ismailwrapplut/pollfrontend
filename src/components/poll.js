@@ -1,0 +1,178 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import "../../node_modules/bootstrap/dist/css/bootstrap.min.css";
+import "../App.css";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import Notification from "./notification";
+import { baseURL } from "../baseURL";
+
+function Poll({ location }) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const [question, setQuestion] = useState("");
+  const [options, setOptions] = useState([{ id: "", options: "", count: 0 }]);
+  const [pollid, setPollid] = useState("");
+  const [localkey, setLocalkey] = useState("");
+  const [response, setResponse] = useState({
+    id: "",
+    options: "",
+    count: 0,
+  });
+  const [toast, setToast] = useState({
+    snackbaropen: false,
+    msg: "",
+    not: "",
+  });
+  const [verifier, setVerifier] = useState({ id: "", selected: "", show: 0 });
+  const snackbarclose = (event) => {
+    setToast({
+      snackbaropen: false,
+    });
+  };
+  useEffect(() => {
+    setLocalkey(question.toLowerCase().trim().slice(0, 2) + pollid.slice(0, 4));
+    var cache = JSON.parse(localStorage.getItem(localkey));
+    if (cache != null) {
+      if (cache.id === pollid) {
+        navigate("/poll-result/?id=" + pollid);
+      }
+    }
+  });
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    setPollid(id);
+
+    axios
+      .get(`${baseURL}/polls/${id}`)
+      .then(function (response) {
+        let medium = [];
+        const data = response.data;
+        setQuestion(data.question);
+        data.options.map((option) => {
+          medium.push(option);
+          return medium;
+        });
+        setOptions(medium);
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+  }, []);
+
+  function settingResponse({ option }) {
+    setResponse({
+      id: option.id,
+      options: option.options,
+      count: option.count + 1,
+      pollid: pollid,
+    });
+    setVerifier({ id: pollid, selected: option.options, show: 0 });
+  }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (response.options.length > 0) {
+      e.preventDefault();
+      setToast({
+        snackbaropen: true,
+        msg: "Thankyou for your vote!, vote submitted!",
+        not: "success",
+      });
+
+      axios
+        .post(`${baseURL}/polls/submitResponse`, response)
+        .then(function (res) {
+          console.log(res);
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
+      navigate("/");
+    } else {
+      setToast({
+        snackbaropen: true,
+        msg: "Please, select a option!",
+        not: "error",
+      });
+    }
+  };
+
+  return (
+    <div className="ui-outer">
+      <div className="ui-container py-5 px-5">
+        <div>
+          <h2
+            className=" mb-5 w-100 heading"
+            style={{
+              wordWrap: "break-word",
+            }}
+          >
+            {question}
+          </h2>
+          <div className="flex flex-column w-75 mr-auto ml-auto">
+            <form>
+              {options.map((option) => (
+                <div
+                  className="py-3 w-100 mb-4 shadow-lg hover-zoom px-2  rounded bg-white  radio-label"
+                  key={option.id}
+                >
+                  <div className="d-flex align-items-center">
+                    <input
+                      type="radio"
+                      id={option.id}
+                      name="option"
+                      value={option.options}
+                      checked={response.options === option.options}
+                      onChange={() => settingResponse({ option })}
+                      className="d-inline-block ml-3 mr-3"
+                    />
+                    <label htmlFor={option.id} className="w-100">
+                      <h4
+                        className=" font-weight-bold  text-primary-dark d-inline-block "
+                        style={{
+                          wordWrap: "break-word",
+                          width: "93%",
+                        }}
+                      >
+                        {option.options}
+                      </h4>
+                    </label>
+                  </div>
+                </div>
+              ))}
+              <Notification
+                switcher={toast.snackbaropen}
+                close={snackbarclose}
+                message={toast.msg}
+                nottype={toast.not}
+              />
+
+              <div className="mt-5 d-flex flex-column flex-md-row">
+                <div className="col-0 col-md-8 d-flex px-0 justify-content-center justify-content-md-start">
+                  <button
+                    type="submit"
+                    onClick={handleSubmit}
+                    className="focus-outline-none py-3 font-weight-bold focus-shadow w-50 bg-success border-0 text-white px-2 shadow-lg hover-shadow-lg rounded-lg"
+                  >
+                    Submit your vote
+                  </button>
+                </div>
+                <div className="col-0 col-md-4 mt-4 px-0">
+                  <Link to={"/poll-result/?id=" + pollid}>
+                    <h5 className=" display-8 float-right text-secondary font-weight-normal">
+                      View Results <FontAwesomeIcon icon={faChevronRight} />
+                    </h5>
+                  </Link>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+export default Poll;
