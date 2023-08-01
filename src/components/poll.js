@@ -90,7 +90,7 @@ function Poll({ location }) {
         .catch(function (error) {
           console.log(error);
         });
-      navigate("/");
+      navigate("/poll-result/?id=" + pollid);
     } else {
       setToast({
         snackbaropen: true,
