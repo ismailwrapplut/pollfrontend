@@ -25,7 +25,7 @@ const Signup = () => {
     if (data?.userFound) {
       toast.success(data?.message);
       localStorage.setItem("user", JSON.stringify(data));
-      navigate("/");
+      window.location.replace(frontendURL);
     }
   };
   if (!localStorage.getItem("user")) {
